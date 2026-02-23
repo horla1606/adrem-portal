@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staff Dashboard — Adrem Model Academy</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="supabase.js"></script>
+<style>
+  :root {
+    --purple:#7c52e8; --purple-deep:#5236c7; --purple-light:#b8a4f7;
+    --purple-bg:rgba(124,82,232,0.1); --purple-b:rgba(124,82,232,0.25);
+    --amber:#fbbf24; --amber-deep:#d97706; --amber-light:#fde68a;
+    --amber-bg:rgba(251,191,36,0.1); --amber-b:rgba(251,191,36,0.25);
+    --rose:#e8527a; --rose-deep:#c73660; --rose-light:#f7a8bf;
+    --charcoal:#1a1626; --charcoal-2:#231d33; --muted:#9c8fa3; --white:#ffffff;
+    --glass:rgba(255,255,255,0.06); --glass-b:rgba(255,255,255,0.11);
+    --green:#4ade80; --green-bg:rgba(74,222,128,0.1); --green-b:rgba(74,222,128,0.25);
+    --red:#f87171; --red-bg:rgba(248,113,113,0.1); --red-b:rgba(248,113,113,0.25);
+    --blue:#60a5fa; --blue-bg:rgba(96,165,250,0.1); --blue-b:rgba(96,165,250,0.25);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--charcoal);color:var(--white);min-height:100vh;display:flex;}
+
+  /* ── SIDEBAR ── */
+  .sidebar{width:250px;min-width:250px;background:var(--charcoal-2);border-right:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;padding:24px 0;position:fixed;top:0;left:0;bottom:0;z-index:50;transition:transform 0.3s;overflow-y:auto;}
+  .sidebar-logo{display:flex;align-items:center;gap:12px;padding:0 20px 24px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:20px;}
+  .s-logo-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--purple),var(--purple-deep));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+  .s-logo-text{font-family:'Playfair Display',serif;font-size:0.82rem;font-weight:700;line-height:1.3;}
+  .s-logo-text span{display:block;font-family:'DM Sans',sans-serif;font-size:0.62rem;color:var(--purple-light);letter-spacing:1.5px;text-transform:uppercase;font-weight:400;}
+  .nav-section{padding:0 12px;margin-bottom:6px;}
+  .nav-label{font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:2px;padding:0 10px;margin-bottom:5px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:var(--muted);font-size:0.85rem;font-weight:500;transition:all 0.2s;cursor:pointer;border:none;background:none;width:100%;text-align:left;}
+  .nav-item:hover{background:rgba(255,255,255,0.05);color:var(--white);}
+  .nav-item.active{background:var(--purple-bg);color:var(--purple-light);}
+  .nav-item .ni{font-size:0.95rem;width:18px;text-align:center;}
+  .sidebar-bottom{margin-top:auto;padding:16px 12px 0;border-top:1px solid rgba(255,255,255,0.06);}
+  .logout-btn{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:var(--muted);font-size:0.85rem;transition:all 0.2s;cursor:pointer;border:none;background:none;width:100%;}
+  .logout-btn:hover{color:var(--red);background:var(--red-bg);}
+
+  /* Class Teacher badge in sidebar */
+  .ct-badge{margin:0 12px 12px;padding:10px 14px;background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.25);border-radius:12px;font-size:0.75rem;}
+  .ct-badge strong{color:var(--green);display:block;font-size:0.82rem;margin-bottom:2px;}
+  .ct-badge span{color:var(--muted);}
+
+  /* ── MAIN ── */
+  .main{margin-left:250px;flex:1;display:flex;flex-direction:column;min-height:100vh;}
+  .topbar{position:sticky;top:0;z-index:40;background:rgba(26,22,38,0.97);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,0.06);padding:14px 32px;display:flex;align-items:center;justify-content:space-between;}
+  .topbar-left h2{font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;}
+  .topbar-left p{font-size:0.75rem;color:var(--muted);margin-top:2px;}
+  .topbar-right{display:flex;align-items:center;gap:10px;}
+  .staff-badge{background:var(--purple-bg);border:1px solid var(--purple-b);border-radius:50px;padding:5px 14px;font-size:0.75rem;color:var(--purple-light);}
+  .staff-avatar{width:36px;height:36px;background:linear-gradient(135deg,var(--purple),var(--purple-deep));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.82rem;font-weight:700;color:white;cursor:pointer;}
+  .content{padding:28px 32px;flex:1;}
+
+  /* ── REUSABLES ── */
+  .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+  .stat-card{background:var(--glass);border:1px solid var(--glass-b);border-radius:16px;padding:18px;transition:all 0.3s;}
+  .stat-card:hover{transform:translateY(-3px);}
+  .stat-card .sc-icon{font-size:1.4rem;margin-bottom:10px;}
+  .stat-card .sc-val{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;margin-bottom:3px;}
+  .stat-card .sc-lbl{font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+  .stat-card.purple{border-color:var(--purple-b);background:var(--purple-bg);}.stat-card.purple .sc-val{color:var(--purple-light);}
+  .stat-card.amber{border-color:var(--amber-b);background:var(--amber-bg);}.stat-card.amber .sc-val{color:var(--amber);}
+  .stat-card.green{border-color:var(--green-b);background:var(--green-bg);}.stat-card.green .sc-val{color:var(--green);}
+  .stat-card.red{border-color:var(--red-b);background:var(--red-bg);}.stat-card.red .sc-val{color:var(--red);}
+  .stat-card.blue{border-color:var(--blue-b);background:var(--blue-bg);}.stat-card.blue .sc-val{color:var(--blue);}
+
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px;}
+  .section-card{background:var(--glass);border:1px solid var(--glass-b);border-radius:18px;padding:22px;}
+  .section-card-full{background:var(--glass);border:1px solid var(--glass-b);border-radius:18px;padding:22px;margin-bottom:20px;}
+  .sc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+  .sc-header h3{font-family:'Playfair Display',serif;font-size:0.95rem;font-weight:700;}
+
+  .btn{padding:8px 18px;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.3s;}
+  .btn:hover{transform:translateY(-2px);filter:brightness(1.1);}
+  .btn-purple{background:linear-gradient(135deg,var(--purple),var(--purple-deep));color:white;box-shadow:0 4px 14px rgba(124,82,232,0.35);}
+  .btn-amber{background:linear-gradient(135deg,var(--amber),var(--amber-deep));color:#1a1626;box-shadow:0 4px 14px rgba(251,191,36,0.35);}
+  .btn-green{background:linear-gradient(135deg,var(--green),#22c55e);color:#1a1626;box-shadow:0 4px 14px rgba(74,222,128,0.35);}
+  .btn-red{background:linear-gradient(135deg,var(--red),#ef4444);color:white;}
+  .btn-sm{padding:5px 12px;font-size:0.75rem;border-radius:8px;}
+
+  .data-table{width:100%;border-collapse:collapse;}
+  .data-table th{font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);text-align:left;padding:0 12px 10px;font-weight:500;}
+  .data-table td{padding:11px 12px;border-top:1px solid rgba(255,255,255,0.05);font-size:0.83rem;vertical-align:middle;}
+  .data-table tr:hover td{background:rgba(255,255,255,0.03);}
+
+  .badge{display:inline-block;padding:3px 10px;border-radius:50px;font-size:0.7rem;font-weight:600;}
+  .badge-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-b);}
+  .badge-amber{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-b);}
+  .badge-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-b);}
+  .badge-purple{background:var(--purple-bg);color:var(--purple-light);border:1px solid var(--purple-b);}
+  .badge-blue{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-b);}
+
+  .perf-item{margin-bottom:12px;}
+  .perf-top{display:flex;justify-content:space-between;margin-bottom:5px;font-size:0.8rem;}
+  .perf-top strong{color:var(--purple-light);}
+  .perf-track{width:100%;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;}
+  .perf-fill{height:100%;border-radius:3px;}
+  .perf-fill.purple{background:linear-gradient(90deg,var(--purple),var(--purple-deep));}
+  .perf-fill.amber{background:linear-gradient(90deg,var(--amber),var(--amber-deep));}
+  .perf-fill.green{background:linear-gradient(90deg,#4ade80,#22c55e);}
+  .perf-fill.red{background:linear-gradient(90deg,var(--red),#ef4444);}
+
+  /* Score inputs */
+  .score-input{width:60px;padding:6px 8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:0.82rem;text-align:center;outline:none;transition:all 0.3s;}
+  .score-input:focus{border-color:var(--purple);background:rgba(124,82,232,0.08);}
+
+  /* Attendance */
+  .att-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
+  .att-card{padding:12px 14px;border-radius:12px;cursor:pointer;transition:all 0.2s;border:1px solid rgba(255,255,255,0.08);background:rgba(74,222,128,0.08);}
+  .att-card.absent{background:rgba(248,113,113,0.08);border-color:rgba(248,113,113,0.25);}
+  .att-card h4{font-size:0.82rem;font-weight:600;margin-bottom:3px;}
+  .att-card span{font-size:0.72rem;color:var(--muted);}
+  .att-card .att-status{font-size:0.7rem;font-weight:600;margin-top:6px;}
+  .att-card:not(.absent) .att-status{color:var(--green);}
+  .att-card.absent .att-status{color:var(--red);}
+
+  /* Timetable */
+  .tt-table{width:100%;border-collapse:collapse;font-size:0.78rem;}
+  .tt-table th{padding:10px;text-align:center;font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid rgba(255,255,255,0.06);}
+  .tt-table td{padding:10px 8px;text-align:center;border:1px solid rgba(255,255,255,0.04);vertical-align:middle;}
+  .tt-period{padding:8px 6px;border-radius:8px;font-size:0.75rem;}
+  .tt-period.active{background:var(--purple-bg);border:1px solid var(--purple-b);color:var(--purple-light);font-weight:600;}
+  .tt-period.free{background:var(--glass);color:var(--muted);}
+  .tt-period.break{background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);color:var(--amber-light);}
+
+  /* Psychomotor */
+  .psycho-table{width:100%;border-collapse:collapse;}
+  .psycho-table th{font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);padding:0 8px 10px;text-align:center;font-weight:500;}
+  .psycho-table th:first-child{text-align:left;}
+  .psycho-table td{padding:9px 8px;border-top:1px solid rgba(255,255,255,0.05);font-size:0.82rem;text-align:center;}
+  .psycho-table td:first-child{text-align:left;font-weight:500;white-space:nowrap;}
+  .psycho-select{padding:5px 6px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:0.78rem;outline:none;cursor:pointer;}
+  .psycho-select option{background:var(--charcoal-2);}
+
+  /* Locked overlay */
+  .locked-overlay{background:rgba(26,22,38,0.85);border:1px solid rgba(248,113,113,0.2);border-radius:18px;padding:48px 32px;text-align:center;backdrop-filter:blur(4px);}
+  .locked-overlay .lock-icon{font-size:3rem;margin-bottom:16px;}
+  .locked-overlay h3{font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:10px;color:var(--white);}
+  .locked-overlay p{font-size:0.83rem;color:var(--muted);line-height:1.7;max-width:420px;margin:0 auto;}
+
+  /* Notices */
+  .notice-item{display:flex;gap:10px;padding:12px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;margin-bottom:8px;}
+  .notice-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:6px;}
+  .notice-dot.urgent{background:var(--red);}
+  .notice-dot.normal{background:var(--purple-light);}
+  .notice-dot.info{background:var(--blue);}
+
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+  .field input,.field select,.field textarea{width:100%;padding:10px 14px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;transition:all 0.3s;}
+  .field input:focus,.field select:focus{border-color:var(--purple);background:rgba(124,82,232,0.06);}
+  .field select option{background:var(--charcoal-2);}
+
+  .menu-toggle{display:none;position:fixed;top:14px;left:14px;z-index:100;background:var(--purple);border:none;border-radius:10px;padding:7px 11px;cursor:pointer;font-size:1rem;color:white;}
+  .dash-footer{padding:18px 32px;border-top:1px solid rgba(255,255,255,0.06);font-size:0.72rem;color:var(--muted);text-align:center;}
+
+  @media(max-width:1000px){.stat-row{grid-template-columns:repeat(2,1fr)}.two-col{grid-template-columns:1fr}}
+  @media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.menu-toggle{display:block}.topbar{padding:12px 16px 12px 56px}.content{padding:18px}}
+  @media(max-width:480px){.stat-row{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="s-logo-icon">👩‍🏫</div>
+    <div class="s-logo-text">Adrem Model Academy<span>Staff Portal</span></div>
+  </div>
+
+  <!-- Class Teacher badge — shown only if class teacher -->
+  <div id="ct-sidebar-badge" style="display:none;" class="ct-badge">
+    <strong id="ct-badge-text">✅ Class Teacher</strong>
+    <span id="ct-badge-class"></span>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Overview</div>
+    <button class="nav-item active" onclick="showSection('dashboard',this)"><span class="ni">📊</span> Dashboard</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Academics</div>
+    <button class="nav-item" onclick="showSection('scores',this)"><span class="ni">✏️</span> Enter Scores</button>
+    <button class="nav-item" onclick="showSection('attendance',this)"><span class="ni">✅</span> Attendance</button>
+    <button class="nav-item" id="psycho-nav-btn" onclick="handlePsychoNav(this)">
+      <span class="ni">🧠</span> Psychomotor
+      <span id="psycho-lock-icon" style="margin-left:auto;font-size:0.75rem;">🔒</span>
+    </button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">My Class</div>
+    <button class="nav-item" onclick="showSection('students',this)"><span class="ni">👥</span> My Students</button>
+    <button class="nav-item" onclick="showSection('timetable',this)"><span class="ni">🗓️</span> My Timetable</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Account</div>
+    <button class="nav-item" onclick="showSection('profile',this)"><span class="ni">👤</span> My Profile</button>
+    <button class="nav-item" onclick="showSection('password',this)"><span class="ni">🔒</span> Change Password</button>
+  </div>
+  <div class="sidebar-bottom">
+    <!-- Logout now calls DB.logout() instead of a plain href -->
+    <button class="logout-btn" onclick="DB.logout()">🚪 Log Out</button>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h2 id="page-title">Staff Dashboard</h2>
+      <p id="topbar-term">Loading...</p>
+    </div>
+    <div class="topbar-right">
+      <div class="staff-badge" id="topbar-badge">👩‍🏫 Staff</div>
+      <div class="staff-avatar" id="staff-avatar">?</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div id="section-dashboard">
+      <div class="section-card-full">
+        <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+          <div style="width:64px;height:64px;background:linear-gradient(135deg,var(--purple),var(--purple-deep));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:700;color:white;flex-shrink:0;" id="profile-avatar-big">?</div>
+          <div style="flex:1;">
+            <div style="font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;" id="profile-name">Loading...</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:3px;" id="profile-meta"></div>
+            <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;" id="profile-badges"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card purple"><div class="sc-icon">👥</div><div class="sc-val">32</div><div class="sc-lbl">Total Students</div></div>
+        <div class="stat-card green"><div class="sc-icon">✅</div><div class="sc-val">42</div><div class="sc-lbl">Scores Entered</div></div>
+        <div class="stat-card amber"><div class="sc-icon">⏳</div><div class="sc-val">16</div><div class="sc-lbl">Scores Pending</div></div>
+        <div class="stat-card blue"><div class="sc-icon">📊</div><div class="sc-val">94%</div><div class="sc-lbl">Avg Attendance</div></div>
+      </div>
+
+      <!-- Class Teacher overview — shows only if class teacher -->
+      <div id="ct-section" style="display:none;">
+        <div class="section-card-full" style="background:rgba(74,222,128,0.06);border-color:rgba(74,222,128,0.2);">
+          <div class="sc-header"><h3>🏫 My Class Overview</h3><span id="ct-class-label"></span></div>
+          <div class="stat-row">
+            <div class="stat-card green"><div class="sc-icon">👩‍🎓</div><div class="sc-val">32</div><div class="sc-lbl">Total Pupils</div></div>
+            <div class="stat-card purple"><div class="sc-icon">📊</div><div class="sc-val">72%</div><div class="sc-lbl">Class Average</div></div>
+            <div class="stat-card amber"><div class="sc-icon">🏆</div><div class="sc-val">5</div><div class="sc-lbl">Top Performers</div></div>
+            <div class="stat-card red"><div class="sc-icon">🤝</div><div class="sc-val">4</div><div class="sc-lbl">Need Support</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="section-card">
+          <div class="sc-header"><h3>📚 My Subjects</h3></div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="padding:12px 14px;background:var(--glass);border:1px solid var(--glass-b);border-radius:12px;display:flex;align-items:center;justify-content:space-between;">
+              <div><div style="font-size:0.85rem;font-weight:600;">Mathematics</div><div style="font-size:0.72rem;color:var(--muted);">JSS 2A · 32 students</div></div>
+              <span class="badge badge-green">✅ Scores Entered</span>
+            </div>
+            <div style="padding:12px 14px;background:var(--glass);border:1px solid var(--glass-b);border-radius:12px;display:flex;align-items:center;justify-content:space-between;">
+              <div><div style="font-size:0.85rem;font-weight:600;">Further Mathematics</div><div style="font-size:0.72rem;color:var(--muted);">SS 2A · 20 students</div></div>
+              <span class="badge badge-amber">⏳ CA Only</span>
+            </div>
+            <div style="padding:12px 14px;background:var(--glass);border:1px solid var(--glass-b);border-radius:12px;display:flex;align-items:center;justify-content:space-between;">
+              <div><div style="font-size:0.85rem;font-weight:600;">Mathematics</div><div style="font-size:0.72rem;color:var(--muted);">JSS 2B · 30 students</div></div>
+              <span class="badge badge-amber">⏳ Not Yet Entered</span>
+            </div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="sc-header"><h3>🏆 Top Students</h3><span id="top-students-label"></span></div>
+          <div style="display:flex;flex-direction:column;gap:8px;" id="top-students-list">
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--glass);border-radius:10px;">
+              <div style="width:24px;height:24px;border-radius:50%;background:var(--green-bg);border:1px solid var(--green-b);display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;color:var(--green);">1</div>
+              <div style="flex:1;font-size:0.83rem;font-weight:500;">Adeyemi Aisha</div>
+              <div style="font-family:'Playfair Display',serif;color:var(--green);font-weight:700;">88%</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--glass);border-radius:10px;">
+              <div style="width:24px;height:24px;border-radius:50%;background:var(--green-bg);border:1px solid var(--green-b);display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;color:var(--green);">2</div>
+              <div style="flex:1;font-size:0.83rem;font-weight:500;">Babatunde Olamide</div>
+              <div style="font-family:'Playfair Display',serif;color:var(--green);font-weight:700;">84%</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--glass);border-radius:10px;">
+              <div style="width:24px;height:24px;border-radius:50%;background:var(--amber-bg);border:1px solid var(--amber-b);display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;color:var(--amber);">3</div>
+              <div style="flex:1;font-size:0.83rem;font-weight:500;">Chukwu Faith</div>
+              <div style="font-family:'Playfair Display',serif;color:var(--amber);font-weight:700;">76%</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--glass);border-radius:10px;">
+              <div style="width:24px;height:24px;border-radius:50%;background:var(--amber-bg);border:1px solid var(--amber-b);display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;color:var(--amber);">4</div>
+              <div style="flex:1;font-size:0.83rem;font-weight:500;">Dada Nifemi</div>
+              <div style="font-family:'Playfair Display',serif;color:var(--amber);font-weight:700;">72%</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--glass);border-radius:10px;">
+              <div style="width:24px;height:24px;border-radius:50%;background:var(--amber-bg);border:1px solid var(--amber-b);display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;color:var(--amber);">5</div>
+              <div style="flex:1;font-size:0.83rem;font-weight:500;">Eze Kingsley</div>
+              <div style="font-family:'Playfair Display',serif;color:var(--amber);font-weight:700;">68%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card-full">
+        <div class="sc-header"><h3>📢 School Notices</h3><span>From Admin</span></div>
+        <div class="notice-item"><div class="notice-dot urgent"></div><div><strong style="font-size:0.83rem;">Score Entry Deadline — Friday 28 Feb</strong><div style="font-size:0.75rem;color:var(--muted);">All CA and Exam scores must be entered before Friday 5PM.</div></div></div>
+        <div class="notice-item"><div class="notice-dot normal"></div><div><strong style="font-size:0.83rem;">Staff Meeting — Monday 3rd March</strong><div style="font-size:0.75rem;color:var(--muted);">Attendance is compulsory. 8AM in the staff room.</div></div></div>
+        <div class="notice-item"><div class="notice-dot info"></div><div><strong style="font-size:0.83rem;">Report Cards Ready for Review</strong><div style="font-size:0.75rem;color:var(--muted);">Class teachers should review and submit psychomotor grades before results are published.</div></div></div>
+      </div>
+    </div>
+
+    <!-- ══ ENTER SCORES ══ -->
+    <div id="section-scores" style="display:none;">
+      <div class="section-card-full">
+        <div class="sc-header">
+          <h3>✏️ Enter Scores</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <select style="padding:7px 12px;background:var(--glass);border:1px solid var(--glass-b);border-radius:9px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:0.82rem;outline:none;">
+              <option>Mathematics — JSS 2A</option>
+              <option>Further Maths — SS 2A</option>
+              <option>Mathematics — JSS 2B</option>
+            </select>
+            <button class="btn btn-purple" onclick="showToast('Scores saved!')">💾 Save All Scores</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Student Name</th>
+                <th>Reg Number</th>
+                <th>CA (max 30)</th>
+                <th>Exam (max 70)</th>
+                <th>Total</th>
+                <th>Grade</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="score-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ATTENDANCE ══ -->
+    <div id="section-attendance" style="display:none;">
+      <div class="section-card-full">
+        <div class="sc-header">
+          <h3>✅ Mark Attendance</h3>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <span style="font-size:0.78rem;color:var(--muted);" id="att-date"></span>
+            <span id="att-present-count" class="badge badge-green">Present: 10</span>
+            <span id="att-absent-count" class="badge badge-red">Absent: 0</span>
+          </div>
+        </div>
+        <div style="background:var(--glass);border:1px solid var(--glass-b);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:0.78rem;color:var(--muted);">
+          Click a student card to toggle between Present ✅ and Absent ❌
+        </div>
+        <div class="att-grid" id="att-grid"></div>
+        <div style="margin-top:18px;">
+          <button class="btn btn-purple" onclick="showToast('Attendance saved!')">💾 Save Attendance</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PSYCHOMOTOR ══ -->
+    <div id="section-psychomotor" style="display:none;">
+
+      <div id="psycho-locked" style="display:none;">
+        <div class="locked-overlay">
+          <div class="lock-icon">🔒</div>
+          <h3>Class Teachers Only</h3>
+          <p>The Psychomotor &amp; Affective Assessment section is exclusively for <strong>designated Class Teachers</strong>. This section allows you to grade your students on behaviour, conduct, and extracurricular participation.</p>
+          <p style="margin-top:12px;">If you believe this is an error, please contact the School Admin to verify your class teacher assignment.</p>
+        </div>
+      </div>
+
+      <div id="psycho-unlocked" style="display:none;">
+        <div class="section-card-full">
+          <div class="sc-header">
+            <div>
+              <h3>🧠 Psychomotor &amp; Affective Assessment</h3>
+              <div style="font-size:0.75rem;color:var(--muted);margin-top:4px;" id="psycho-class-label"></div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <span id="psycho-submit-badge" class="badge badge-amber">⏳ Not Yet Submitted</span>
+              <button class="btn btn-purple" onclick="savePsychomotor()">💾 Save Draft</button>
+              <button class="btn btn-green" onclick="submitPsychomotor()">📤 Submit to Admin</button>
+            </div>
+          </div>
+          <div style="background:rgba(124,82,232,0.08);border:1px solid rgba(124,82,232,0.2);border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:0.82rem;color:var(--muted);line-height:1.7;">
+            📋 <strong style="color:var(--purple-light);">Instructions:</strong> Grade each student on the traits below. Use 5 = Excellent down to 1 = Poor. Once you click <em>Submit to Admin</em>, these grades will be sent for Admin approval and will appear on each student's printed result sheet.
+          </div>
+          <div style="font-size:0.75rem;margin-bottom:14px;display:flex;gap:16px;flex-wrap:wrap;">
+            <span style="color:var(--green);">5 = Excellent</span>
+            <span style="color:var(--blue);">4 = Very Good</span>
+            <span style="color:var(--amber);">3 = Good</span>
+            <span style="color:var(--rose-light);">2 = Fair</span>
+            <span style="color:var(--red);">1 = Poor</span>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="psycho-table">
+              <thead>
+                <tr>
+                  <th style="min-width:140px;text-align:left;">Student Name</th>
+                  <th>Punctuality</th><th>Attentiveness</th><th>Neatness</th><th>Politeness</th><th>Honesty</th>
+                  <th>Sports/<br>Games</th><th>Clubs/<br>Societies</th><th>Creativity</th><th>Leadership</th><th>Overall<br>Conduct</th>
+                </tr>
+              </thead>
+              <tbody id="psycho-tbody"></tbody>
+            </table>
+          </div>
+          <div style="margin-top:14px;padding:12px 14px;background:rgba(251,191,36,0.07);border:1px solid rgba(251,191,36,0.18);border-radius:10px;font-size:0.78rem;color:var(--muted);">
+            ⚠️ Once submitted, Admin will review and approve your grades. After approval, grades are locked and appear on student result sheets. If corrections are needed after submission, contact the Admin.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ MY STUDENTS ══ -->
+    <div id="section-students" style="display:none;">
+      <div class="section-card-full">
+        <div class="sc-header"><h3>👥 My Students</h3><span id="students-class-label"></span></div>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead><tr><th>Student Name</th><th>Reg Number</th><th>Class</th><th>Overall Avg</th><th>Status</th></tr></thead>
+            <tbody id="students-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TIMETABLE ══ -->
+    <div id="section-timetable" style="display:none;">
+      <div class="section-card-full">
+        <div class="sc-header"><h3>🗓️ My Weekly Timetable</h3><span id="timetable-term-label"></span></div>
+        <div style="overflow-x:auto;">
+          <table class="tt-table">
+            <thead><tr><th>Time</th><th>Monday</th><th>Tuesday</th><th>Wednesday</th><th>Thursday</th><th>Friday</th></tr></thead>
+            <tbody>
+              <tr><td style="color:var(--muted);font-size:0.72rem;white-space:nowrap;">7:30–8:00</td><td colspan="5"><div class="tt-period break">Assembly</div></td></tr>
+              <tr>
+                <td style="color:var(--muted);font-size:0.72rem;">8:00–8:40</td>
+                <td><div class="tt-period active">Maths<br><small>JSS 2A</small></div></td>
+                <td><div class="tt-period free">Free</div></td>
+                <td><div class="tt-period active">Maths<br><small>JSS 2B</small></div></td>
+                <td><div class="tt-period active">F.Maths<br><small>SS 2A</small></div></td>
+                <td><div class="tt-period free">Free</div></td>
+              </tr>
+              <tr>
+                <td style="color:var(--muted);font-size:0.72rem;">8:40–9:20</td>
+                <td><div class="tt-period free">Free</div></td>
+                <td><div class="tt-period active">F.Maths<br><small>SS 2A</small></div></td>
+                <td><div class="tt-period free">Free</div></td>
+                <td><div class="tt-period free">Free</div></td>
+                <td><div class="tt-period active">Maths<br><small>JSS 2A</small></div></td>
+              </tr>
+              <tr>
+                <td style="color:var(--muted);font-size:0.72rem;">9:20–10:00</td>
+                <td><div class="tt-period active">Maths<br><small>JSS 2B</small></div></td>
+                <td><div class="tt-period active">Maths<br><small>JSS 2A</small></div></td>
+                <td><div class="tt-period active">F.Maths<br><small>SS 2A</small></div></td>
+                <td><div class="tt-period active">Maths<br><small>JSS 2B</small></div></td>
+                <td><div class="tt-period free">Free</div></td>
+              </tr>
+              <tr><td style="color:var(--muted);font-size:0.72rem;">10:00–10:20</td><td colspan="5"><div class="tt-period break">Short Break</div></td></tr>
+              <tr>
+                <td style="color:var(--muted);font-size:0.72rem;">10:20–11:00</td>
+                <td><div class="tt-period free">Free</div></td>
+                <td><div class="tt-period active">Maths<br><small>JSS 2B</small></div></td>
+                <td><div class="tt-period active">Maths<br><small>JSS 2A</small></div></td>
+                <td><div class="tt-period free">Free</div></td>
+                <td><div class="tt-period active">F.Maths<br><small>SS 2A</small></div></td>
+              </tr>
+              <tr>
+                <td style="color:var(--muted);font-size:0.72rem;">11:00–11:40</td>
+                <td><div class="tt-period active">F.Maths<br><small>SS 2A</small></div></td>
+                <td><div class="tt-period free">Free</div></td>
+                <td><div class="tt-period free">Free</div></td>
+                <td><div class="tt-period active">Maths<br><small>JSS 2A</small></div></td>
+                <td><div class="tt-period free">Free</div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PROFILE ══ -->
+    <div id="section-profile" style="display:none;">
+      <div class="two-col">
+        <div class="section-card">
+          <div class="sc-header"><h3>👤 Personal Information</h3></div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="padding:12px 14px;background:var(--glass);border:1px solid var(--glass-b);border-radius:10px;"><div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Full Name</div><div id="pf-name" style="font-size:0.88rem;font-weight:500;">—</div></div>
+            <div style="padding:12px 14px;background:var(--glass);border:1px solid var(--glass-b);border-radius:10px;"><div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Phone Number (Login ID)</div><div id="pf-phone" style="font-size:0.88rem;font-weight:500;">—</div></div>
+            <div style="padding:12px 14px;background:var(--glass);border:1px solid var(--glass-b);border-radius:10px;"><div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Qualification</div><div id="pf-qual" style="font-size:0.88rem;font-weight:500;">—</div></div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="sc-header"><h3>📋 Role Information</h3></div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="padding:12px 14px;background:var(--glass);border:1px solid var(--glass-b);border-radius:10px;"><div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Subjects Teaching</div><div id="pf-subjects" style="font-size:0.88rem;font-weight:500;">—</div></div>
+            <div id="pf-ct-box"></div>
+            <div style="padding:12px 14px;background:var(--glass);border:1px solid var(--glass-b);border-radius:10px;"><div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Role</div><div style="font-size:0.88rem;font-weight:500;">Teaching Staff</div></div>
+          </div>
+          <div style="margin-top:14px;padding:12px 14px;background:rgba(251,191,36,0.07);border:1px solid rgba(251,191,36,0.18);border-radius:10px;font-size:0.78rem;color:var(--muted);line-height:1.7;">
+            ⚠️ To update your name, phone, or class teacher assignment, contact the School Admin.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ CHANGE PASSWORD ══ -->
+    <div id="section-password" style="display:none;">
+      <div class="section-card" style="max-width:480px;">
+        <div class="sc-header"><h3>🔒 Change Password</h3></div>
+        <div class="field"><label>Current Password</label><input type="password" id="pw-current" placeholder="Enter current password"></div>
+        <div class="field"><label>New Password</label><input type="password" id="pw-new" placeholder="Enter new password"></div>
+        <div class="field"><label>Confirm New Password</label><input type="password" id="pw-confirm" placeholder="Repeat new password"></div>
+        <div style="background:var(--glass);border:1px solid var(--glass-b);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:0.78rem;color:var(--muted);line-height:1.7;">
+          💡 Default password is your surname. Choose a strong password and keep it safe.
+        </div>
+        <div id="pw-msg" style="padding:10px 14px;border-radius:8px;font-size:0.78rem;margin-bottom:12px;display:none;"></div>
+        <button class="btn btn-purple" style="width:100%;" onclick="changePassword()">🔒 Update Password</button>
+      </div>
+    </div>
+
+  </div>
+  <div class="dash-footer">© 2026 Adrem Model Academy — P.O Box 102, Adrem Avenue, Apomu, Osun State</div>
+</div>
+
+<div id="toast" style="position:fixed;bottom:28px;right:28px;background:#231d33;border:1px solid rgba(124,82,232,0.3);border-radius:12px;padding:12px 18px;font-size:0.83rem;color:var(--white);z-index:500;opacity:0;transform:translateY(10px);transition:all 0.3s;pointer-events:none;max-width:300px;"></div>
+
+<script>
+// ── Session data ──
+let USER = null;
+let SETTINGS = {};
+
+const studentsData=[
+  {name:'Adeyemi Aisha',    reg:'AMA/2025/042',avg:88},
+  {name:'Babatunde Olamide',reg:'AMA/2025/015',avg:84},
+  {name:'Chukwu Faith',     reg:'AMA/2025/007',avg:76},
+  {name:'Dada Nifemi',      reg:'AMA/2025/033',avg:72},
+  {name:'Eze Kingsley',     reg:'AMA/2025/021',avg:68},
+  {name:'Fadeyi Adeola',    reg:'AMA/2025/011',avg:63},
+  {name:'Gbadebo Oluwaseun',reg:'AMA/2025/028',avg:58},
+  {name:'Hassan Maryam',    reg:'AMA/2025/039',avg:55},
+  {name:'Ikenna Joy',       reg:'AMA/2025/044',avg:49},
+  {name:'Johnson Akintola', reg:'AMA/2025/006',avg:44},
+];
+
+const psychoTraits=['Punctuality','Attentiveness','Neatness','Politeness','Honesty','Sports','Clubs','Creativity','Leadership','Conduct'];
+
+function initials(name){return name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();}
+
+// ── INIT ──
+async function init(){
+  USER = DB.requireAuth('staff');
+  if(!USER) return;
+
+  // Load settings for term label
+  try{
+    SETTINGS = await DB.getSettings();
+  }catch(e){SETTINGS={};}
+
+  const termLabel=(SETTINGS.term||'First Term')+' '+(SETTINGS.session||'2024/2025');
+  document.getElementById('topbar-term').textContent=termLabel+' Session';
+  document.getElementById('timetable-term-label').textContent=termLabel;
+
+  // Populate UI from session
+  const inits=initials(USER.name);
+  document.getElementById('staff-avatar').textContent=inits;
+  document.getElementById('profile-avatar-big').textContent=inits;
+  document.getElementById('profile-name').textContent=USER.name;
+  document.getElementById('profile-meta').textContent=(USER.subjects||'Staff')+' · '+termLabel;
+  document.getElementById('topbar-badge').textContent='👩‍🏫 '+(USER.isClassTeacher?'Class Teacher':'Staff');
+  document.getElementById('pf-name').textContent=USER.name;
+  document.getElementById('pf-phone').textContent=USER.phone||'—';
+  document.getElementById('pf-qual').textContent=USER.qualification||'—';
+  document.getElementById('pf-subjects').textContent=USER.subjects||'—';
+
+  const badgesEl=document.getElementById('profile-badges');
+  badgesEl.innerHTML=`<span class="badge badge-purple">👩‍🏫 ${USER.subjects||'Staff'}</span>`;
+
+  if(USER.isClassTeacher){
+    badgesEl.innerHTML+=` <span class="badge badge-green">✅ Class Teacher — ${USER.assignedClass}</span>`;
+    document.getElementById('pf-ct-box').innerHTML=`<div style="background:var(--green-bg);border:1px solid var(--green-b);border-radius:10px;padding:12px 14px;"><div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Class Teacher</div><div style="font-size:0.88rem;font-weight:600;color:var(--green);">✅ ${USER.assignedClass}</div></div>`;
+    document.getElementById('ct-sidebar-badge').style.display='block';
+    document.getElementById('ct-badge-text').textContent='✅ Class Teacher';
+    document.getElementById('ct-badge-class').textContent=USER.assignedClass;
+    document.getElementById('ct-section').style.display='block';
+    document.getElementById('ct-class-label').textContent=USER.assignedClass;
+    document.getElementById('psycho-lock-icon').textContent='🔓';
+    document.getElementById('students-class-label').textContent=USER.assignedClass+' · '+studentsData.length+' students';
+    document.getElementById('psycho-class-label').textContent='Class: '+USER.assignedClass+' · '+studentsData.length+' students';
+    document.getElementById('top-students-label').textContent=USER.assignedClass;
+  } else {
+    document.getElementById('pf-ct-box').innerHTML=`<div style="background:var(--glass);border:1px solid var(--glass-b);border-radius:10px;padding:12px 14px;"><div style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Class Teacher</div><div style="font-size:0.88rem;color:var(--muted);">Not assigned</div></div>`;
+    document.getElementById('students-class-label').textContent='All assigned students';
+    document.getElementById('top-students-label').textContent='My Students';
+  }
+
+  // Today's date for attendance
+  const today=new Date();
+  const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('att-date').textContent=dayNames[today.getDay()]+', '+today.getDate()+' '+monthNames[today.getMonth()]+' '+today.getFullYear();
+
+  renderScores();
+  renderAttendance();
+  renderStudents();
+  renderPsychomotor();
+}
+
+// ── NAVIGATION ──
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}
+const allSections=['dashboard','scores','attendance','psychomotor','students','timetable','profile','password'];
+const titles={dashboard:'Staff Dashboard',scores:'Enter Scores',attendance:'Mark Attendance',psychomotor:'Psychomotor & Affective Assessment',students:'My Students',timetable:'My Timetable',profile:'My Profile',password:'Change Password'};
+
+function showSection(name,el){
+  allSections.forEach(s=>{const e=document.getElementById('section-'+s);if(e)e.style.display=s===name?'block':'none';});
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.getElementById('page-title').textContent=titles[name]||name;
+}
+
+function handlePsychoNav(el){
+  showSection('psychomotor',el);
+  if(!USER||!USER.isClassTeacher){
+    document.getElementById('psycho-locked').style.display='block';
+    document.getElementById('psycho-unlocked').style.display='none';
+    showToast('⚠️ This section is for Class Teachers only');
+  } else {
+    document.getElementById('psycho-locked').style.display='none';
+    document.getElementById('psycho-unlocked').style.display='block';
+  }
+}
+
+// ── SCORES ──
+function renderScores(){
+  const tbody=document.getElementById('score-tbody');
+  const caVals=[26,25,24,20,19,18,17,15,14,13];
+  const exVals=[62,60,57,52,50,47,44,43,40,38];
+  tbody.innerHTML=studentsData.map((s,i)=>{
+    const total=caVals[i]+exVals[i];
+    const g=total>=70?'A':total>=40?'P':'F';
+    const gc=total>=70?'color:var(--green)':total>=40?'color:var(--amber)':'color:var(--red)';
+    const status=i<3?`<span class="badge badge-green">✅ Saved</span>`:i<7?`<span class="badge badge-amber">⏳ Pending</span>`:`<span class="badge badge-red">❌ Missing</span>`;
+    return`<tr>
+      <td style="font-weight:500;">${s.name}</td>
+      <td style="color:var(--muted);font-size:0.78rem;">${s.reg}</td>
+      <td><input class="score-input" type="number" min="0" max="30" value="${caVals[i]}"></td>
+      <td><input class="score-input" type="number" min="0" max="70" value="${exVals[i]}"></td>
+      <td style="font-weight:700;">${total}</td>
+      <td style="${gc};font-weight:700;">${g}</td>
+      <td>${status}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── ATTENDANCE ──
+let attState=studentsData.map(()=>true);
+function renderAttendance(){
+  const grid=document.getElementById('att-grid');
+  grid.innerHTML=studentsData.map((s,i)=>`
+    <div class="att-card ${attState[i]?'':'absent'}" onclick="toggleAtt(${i})" id="att-${i}">
+      <h4>${s.name}</h4><span>${s.reg}</span>
+      <div class="att-status">${attState[i]?'✅ Present':'❌ Absent'}</div>
+    </div>`).join('');
+  updateAttCount();
+}
+function toggleAtt(i){
+  attState[i]=!attState[i];
+  const card=document.getElementById('att-'+i);
+  card.classList.toggle('absent');
+  card.querySelector('.att-status').textContent=attState[i]?'✅ Present':'❌ Absent';
+  updateAttCount();
+}
+function updateAttCount(){
+  const p=attState.filter(Boolean).length;
+  document.getElementById('att-present-count').textContent=`Present: ${p}`;
+  document.getElementById('att-absent-count').textContent=`Absent: ${attState.length-p}`;
+}
+
+// ── PSYCHOMOTOR ──
+function renderPsychomotor(){
+  const tbody=document.getElementById('psycho-tbody');
+  if(!tbody)return;
+  tbody.innerHTML=studentsData.map(s=>`<tr>
+    <td>${s.name}</td>
+    ${psychoTraits.map(()=>`<td><select class="psycho-select"><option value="5">5</option><option value="4">4</option><option value="3" selected>3</option><option value="2">2</option><option value="1">1</option></select></td>`).join('')}
+  </tr>`).join('');
+}
+function savePsychomotor(){showToast('Draft saved! Not yet submitted to Admin.');}
+function submitPsychomotor(){
+  document.getElementById('psycho-submit-badge').className='badge badge-green';
+  document.getElementById('psycho-submit-badge').textContent='✅ Submitted to Admin';
+  showToast('Psychomotor submitted! Admin will review and approve.');
+}
+
+// ── STUDENTS TABLE ──
+function renderStudents(){
+  const tbody=document.getElementById('students-tbody');
+  tbody.innerHTML=studentsData.map(s=>{
+    const ac=s.avg>=70?'color:var(--green)':s.avg>=55?'color:var(--amber)':'color:var(--red)';
+    const status=s.avg>=70?'<span class="badge badge-green">On Track</span>':s.avg>=55?'<span class="badge badge-amber">Average</span>':'<span class="badge badge-red">Needs Support</span>';
+    return`<tr>
+      <td style="font-weight:500;">${s.name}</td>
+      <td style="color:var(--muted);font-size:0.78rem;">${s.reg}</td>
+      <td><span class="badge badge-purple">${USER&&USER.assignedClass?USER.assignedClass:'JSS 2A'}</span></td>
+      <td style="${ac};font-weight:700;">${s.avg}%</td>
+      <td>${status}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── CHANGE PASSWORD ──
+async function changePassword(){
+  const current=document.getElementById('pw-current').value.trim();
+  const newPw=document.getElementById('pw-new').value.trim();
+  const confirm=document.getElementById('pw-confirm').value.trim();
+  const msgEl=document.getElementById('pw-msg');
+  const show=(msg,ok)=>{msgEl.textContent=msg;msgEl.style.background=ok?'var(--green-bg)':'var(--red-bg)';msgEl.style.color=ok?'var(--green)':'var(--red)';msgEl.style.border='1px solid '+(ok?'var(--green-b)':'var(--red-b)');msgEl.style.display='block';};
+  if(!current||!newPw||!confirm){show('Please fill all fields.',false);return;}
+  if(newPw!==confirm){show('New passwords do not match.',false);return;}
+  if(newPw.length<4){show('Password must be at least 4 characters.',false);return;}
+  try{
+    const check=await DB.select('staff',{id:USER.id,password:current});
+    if(!check.length){show('Current password is incorrect.',false);return;}
+    await DB.update('staff',{password:newPw},{id:USER.id});
+    show('✅ Password changed successfully!',true);
+    document.getElementById('pw-current').value='';
+    document.getElementById('pw-new').value='';
+    document.getElementById('pw-confirm').value='';
+  }catch(e){show('Error updating. Try again.',false);}
+}
+
+// ── TOAST ──
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg.startsWith('⚠️')?msg:'✅ '+msg;
+  t.style.opacity='1';t.style.transform='translateY(0)';
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(10px)';},3200);
+}
+
+// ── Bfcache logout fix ──
+window.addEventListener('pageshow',function(e){
+  if(e.persisted){
+    const user=sessionStorage.getItem('adrem_user');
+    if(!user) window.location.href='staff-login.html';
+  }
+});
+
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
