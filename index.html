@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adrem Model Academy — Official Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --rose:        #e8527a;
+    --rose-deep:   #c73660;
+    --rose-light:  #f7a8bf;
+    --rose-pale:   #fde8ef;
+    --charcoal:    #1a1626;
+    --charcoal-2:  #231d33;
+    --slate:       #4a3f5c;
+    --muted:       #9c8fa3;
+    --white:       #ffffff;
+    --glass:       rgba(255,255,255,0.07);
+    --glass-b:     rgba(255,255,255,0.13);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--charcoal);
+    color: var(--white);
+    overflow-x: hidden;
+  }
+
+  /* ════════════════════════════════
+     NAVIGATION
+  ════════════════════════════════ */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 60px;
+    background: rgba(26,22,38,0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    transition: all 0.3s;
+  }
+  .nav-brand { display: flex; align-items: center; gap: 12px; }
+  .nav-logo {
+    width: 42px; height: 42px;
+    background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 4px 16px rgba(232,82,122,0.35);
+  }
+  .nav-name { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; line-height: 1.2; }
+  .nav-name span { display: block; font-family: 'DM Sans', sans-serif; font-size: 0.65rem; color: var(--rose-light); letter-spacing: 2px; text-transform: uppercase; font-weight: 400; }
+  .nav-links { display: flex; gap: 32px; }
+  .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.88rem; font-weight: 500; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--rose-light); }
+  .nav-cta {
+    display: flex; gap: 10px;
+  }
+  .btn-outline {
+    padding: 9px 22px;
+    border: 1px solid rgba(232,82,122,0.5);
+    border-radius: 50px; background: transparent;
+    color: var(--rose-light); font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem; font-weight: 500; cursor: pointer;
+    text-decoration: none; transition: all 0.3s;
+  }
+  .btn-outline:hover { background: rgba(232,82,122,0.12); border-color: var(--rose); }
+  .btn-primary {
+    padding: 9px 22px;
+    background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+    border: none; border-radius: 50px;
+    color: var(--white); font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem; font-weight: 600; cursor: pointer;
+    text-decoration: none; transition: all 0.3s;
+    box-shadow: 0 4px 16px rgba(232,82,122,0.35);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(232,82,122,0.5); }
+
+  /* ════════════════════════════════
+     HERO
+  ════════════════════════════════ */
+  .hero {
+    min-height: 100vh;
+    display: flex; align-items: center;
+    position: relative; overflow: hidden;
+    padding: 120px 60px 80px;
+  }
+  .hero-bg {
+    position: absolute; inset: 0; z-index: 0;
+    background: linear-gradient(135deg, #1a1626 0%, #2a1a30 45%, #1e1228 100%);
+  }
+  .hero-bg::before {
+    content: '';
+    position: absolute;
+    width: 800px; height: 800px;
+    top: -300px; right: -200px;
+    background: radial-gradient(circle, rgba(232,82,122,0.22) 0%, transparent 65%);
+    animation: pulse 8s ease-in-out infinite alternate;
+  }
+  .hero-bg::after {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    bottom: -200px; left: -100px;
+    background: radial-gradient(circle, rgba(199,54,96,0.18) 0%, transparent 65%);
+    animation: pulse 10s ease-in-out infinite alternate-reverse;
+  }
+  @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.2); } }
+
+  /* grid pattern overlay */
+  .hero-grid {
+    position: absolute; inset: 0; z-index: 0;
+    background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  .hero-content {
+    position: relative; z-index: 1;
+    max-width: 700px;
+    animation: heroIn 1s ease both;
+  }
+  @keyframes heroIn { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
+
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(232,82,122,0.15);
+    border: 1px solid rgba(232,82,122,0.3);
+    border-radius: 50px; padding: 7px 18px;
+    font-size: 0.78rem; color: var(--rose-light);
+    letter-spacing: 1.5px; text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+  .hero-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--rose); animation: blink 1.5s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 700; line-height: 1.1;
+    margin-bottom: 24px;
+  }
+  .hero h1 em {
+    font-style: italic;
+    background: linear-gradient(90deg, var(--rose-light), var(--rose));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero p {
+    font-size: 1.05rem; color: var(--muted); line-height: 1.8;
+    max-width: 560px; margin-bottom: 40px;
+  }
+
+  .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 60px; }
+  .hero-btn-main {
+    padding: 16px 36px;
+    background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+    border: none; border-radius: 50px;
+    color: var(--white); font-family: 'DM Sans', sans-serif;
+    font-size: 1rem; font-weight: 600; cursor: pointer;
+    text-decoration: none; transition: all 0.3s;
+    box-shadow: 0 8px 28px rgba(232,82,122,0.4);
+  }
+  .hero-btn-main:hover { transform: translateY(-3px); box-shadow: 0 14px 36px rgba(232,82,122,0.55); }
+  .hero-btn-ghost {
+    padding: 16px 36px;
+    background: var(--glass);
+    border: 1px solid var(--glass-b);
+    border-radius: 50px;
+    color: var(--white); font-family: 'DM Sans', sans-serif;
+    font-size: 1rem; font-weight: 500; cursor: pointer;
+    text-decoration: none; transition: all 0.3s;
+    backdrop-filter: blur(8px);
+  }
+  .hero-btn-ghost:hover { background: rgba(255,255,255,0.12); transform: translateY(-3px); }
+
+  .hero-stats {
+    display: flex; gap: 40px; flex-wrap: wrap;
+  }
+  .hero-stat {}
+  .hero-stat .n {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem; font-weight: 700;
+    color: var(--rose-light);
+  }
+  .hero-stat .l { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 2px; }
+  .stat-div { width: 1px; background: rgba(255,255,255,0.1); align-self: stretch; }
+
+  /* floating card */
+  .hero-card {
+    position: absolute; right: 60px; top: 50%; transform: translateY(-50%);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 24px; padding: 32px;
+    backdrop-filter: blur(20px);
+    width: 300px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.4);
+    animation: floatCard 6s ease-in-out infinite alternate, heroIn 1.2s ease both;
+    z-index: 1;
+  }
+  @keyframes floatCard { from { transform: translateY(-50%) translateX(0); } to { transform: translateY(-52%) translateX(-8px); } }
+  .hero-card h3 { font-family: 'Playfair Display', serif; font-size: 1rem; margin-bottom: 20px; color: var(--rose-light); }
+  .portal-link {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px; border-radius: 14px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    text-decoration: none; color: var(--white);
+    margin-bottom: 10px; transition: all 0.3s;
+  }
+  .portal-link:hover { background: rgba(232,82,122,0.15); border-color: rgba(232,82,122,0.4); transform: translateX(4px); }
+  .portal-link:last-child { margin-bottom: 0; }
+  .pl-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+    flex-shrink: 0;
+  }
+  .pl-icon.student { background: linear-gradient(135deg, #e8527a, #c73660); }
+  .pl-icon.staff   { background: linear-gradient(135deg, #7c52e8, #5236c7); }
+  .pl-text { flex: 1; }
+  .pl-text strong { display: block; font-size: 0.9rem; font-weight: 600; }
+  .pl-text span { font-size: 0.75rem; color: var(--muted); }
+  .pl-arrow { color: var(--muted); font-size: 0.9rem; }
+
+  /* ════════════════════════════════
+     PORTAL SECTION (MOBILE / MAIN CTA)
+  ════════════════════════════════ */
+  .portal-section {
+    padding: 100px 60px;
+    text-align: center;
+    position: relative;
+  }
+  .portal-section::before {
+    content: '';
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 1px; height: 80px;
+    background: linear-gradient(to bottom, transparent, rgba(232,82,122,0.4));
+  }
+  .section-label {
+    display: inline-block;
+    font-size: 0.75rem; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--rose); margin-bottom: 14px;
+  }
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+    font-weight: 700; margin-bottom: 16px; line-height: 1.2;
+  }
+  .section-sub { color: var(--muted); font-size: 1rem; max-width: 520px; margin: 0 auto 60px; line-height: 1.7; }
+
+  .portal-cards {
+    display: flex; gap: 28px; justify-content: center; flex-wrap: wrap;
+    max-width: 800px; margin: 0 auto;
+  }
+  .portal-card {
+    flex: 1; min-width: 260px; max-width: 340px;
+    background: var(--glass);
+    border: 1px solid var(--glass-b);
+    border-radius: 24px; padding: 40px 32px;
+    text-decoration: none; color: var(--white);
+    transition: all 0.4s; position: relative; overflow: hidden;
+    backdrop-filter: blur(10px);
+  }
+  .portal-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .portal-card.student::before { background: linear-gradient(90deg, var(--rose), var(--rose-deep)); }
+  .portal-card.staff::before   { background: linear-gradient(90deg, #7c52e8, #5236c7); }
+  .portal-card:hover { transform: translateY(-10px); border-color: rgba(255,255,255,0.2); box-shadow: 0 30px 60px rgba(0,0,0,0.4); }
+  .portal-card:hover::before { opacity: 1; }
+  .card-icon {
+    width: 64px; height: 64px; border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; margin: 0 auto 24px;
+  }
+  .portal-card.student .card-icon { background: linear-gradient(135deg, rgba(232,82,122,0.2), rgba(199,54,96,0.3)); border: 1px solid rgba(232,82,122,0.3); }
+  .portal-card.staff   .card-icon { background: linear-gradient(135deg, rgba(124,82,232,0.2), rgba(82,54,199,0.3)); border: 1px solid rgba(124,82,232,0.3); }
+  .portal-card h3 { font-family: 'Playfair Display', serif; font-size: 1.4rem; margin-bottom: 10px; }
+  .portal-card p { color: var(--muted); font-size: 0.88rem; line-height: 1.7; margin-bottom: 28px; }
+  .card-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 24px; border-radius: 50px;
+    font-size: 0.88rem; font-weight: 600;
+    transition: all 0.3s; text-decoration: none;
+  }
+  .portal-card.student .card-btn { background: linear-gradient(135deg, var(--rose), var(--rose-deep)); color: white; box-shadow: 0 6px 20px rgba(232,82,122,0.35); }
+  .portal-card.staff   .card-btn { background: linear-gradient(135deg, #7c52e8, #5236c7); color: white; box-shadow: 0 6px 20px rgba(124,82,232,0.35); }
+  .portal-card:hover .card-btn { transform: scale(1.05); }
+
+  /* ════════════════════════════════
+     ABOUT
+  ════════════════════════════════ */
+  .about {
+    padding: 100px 60px;
+    background: linear-gradient(180deg, var(--charcoal) 0%, var(--charcoal-2) 100%);
+    position: relative;
+  }
+  .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; max-width: 1100px; margin: 0 auto; }
+  .about-left {}
+  .about-left .section-label { text-align: left; display: block; }
+  .about-left .section-title { text-align: left; margin-bottom: 20px; }
+  .about-left p { color: var(--muted); line-height: 1.9; font-size: 0.95rem; margin-bottom: 16px; }
+  .about-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 32px; }
+  .fact {
+    background: var(--glass);
+    border: 1px solid var(--glass-b);
+    border-radius: 14px; padding: 16px;
+    backdrop-filter: blur(8px);
+  }
+  .fact .fi { font-size: 1.3rem; margin-bottom: 6px; }
+  .fact strong { display: block; font-size: 0.88rem; color: var(--white); margin-bottom: 3px; }
+  .fact span { font-size: 0.78rem; color: var(--muted); }
+
+  .about-right {}
+  .mission-card {
+    background: linear-gradient(135deg, rgba(232,82,122,0.1), rgba(199,54,96,0.05));
+    border: 1px solid rgba(232,82,122,0.2);
+    border-radius: 20px; padding: 28px; margin-bottom: 16px;
+  }
+  .mission-card h4 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem; color: var(--rose-light); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .mission-card p { color: var(--muted); font-size: 0.88rem; line-height: 1.8; }
+
+  /* ════════════════════════════════
+     CORE VALUES
+  ════════════════════════════════ */
+  .values { padding: 100px 60px; text-align: center; }
+  .values-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1000px; margin: 0 auto; }
+  .value-card {
+    background: var(--glass);
+    border: 1px solid var(--glass-b);
+    border-radius: 20px; padding: 32px 24px;
+    backdrop-filter: blur(8px);
+    transition: all 0.3s; text-align: left;
+  }
+  .value-card:hover { transform: translateY(-6px); border-color: rgba(232,82,122,0.3); }
+  .value-icon { font-size: 2rem; margin-bottom: 16px; }
+  .value-card h4 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem; color: var(--rose-light); margin-bottom: 8px;
+    letter-spacing: 1px; text-transform: uppercase;
+  }
+  .value-card p { color: var(--muted); font-size: 0.83rem; line-height: 1.7; }
+
+  /* ════════════════════════════════
+     PROGRAMS
+  ════════════════════════════════ */
+  .programs { padding: 100px 60px; background: var(--charcoal-2); text-align: center; }
+  .programs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; max-width: 1100px; margin: 0 auto; }
+  .prog-card {
+    background: var(--glass);
+    border: 1px solid var(--glass-b);
+    border-radius: 20px; padding: 28px 20px;
+    backdrop-filter: blur(8px);
+    transition: all 0.3s;
+  }
+  .prog-card:hover { transform: translateY(-6px); border-color: rgba(232,82,122,0.3); background: rgba(232,82,122,0.07); }
+  .prog-icon { font-size: 2.2rem; margin-bottom: 16px; }
+  .prog-card h4 { font-family: 'Playfair Display', serif; font-size: 0.95rem; margin-bottom: 10px; color: var(--white); }
+  .prog-card p { color: var(--muted); font-size: 0.8rem; line-height: 1.7; }
+
+  /* ════════════════════════════════
+     WHY CHOOSE US
+  ════════════════════════════════ */
+  .why { padding: 100px 60px; text-align: center; }
+  .why-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; max-width: 1100px; margin: 0 auto; }
+  .why-item {
+    background: var(--glass);
+    border: 1px solid var(--glass-b);
+    border-radius: 16px; padding: 24px 18px;
+    backdrop-filter: blur(8px); transition: all 0.3s;
+  }
+  .why-item:hover { transform: translateY(-5px); border-color: rgba(232,82,122,0.3); }
+  .why-check { color: var(--rose); font-size: 1.3rem; margin-bottom: 10px; }
+  .why-item p { color: var(--muted); font-size: 0.83rem; line-height: 1.6; }
+
+  /* ════════════════════════════════
+     FACILITIES
+  ════════════════════════════════ */
+  .facilities { padding: 100px 60px; background: var(--charcoal-2); text-align: center; }
+  .facilities-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; max-width: 900px; margin: 0 auto; }
+  .facility-item {
+    background: var(--glass);
+    border: 1px solid var(--glass-b);
+    border-radius: 16px; padding: 24px;
+    backdrop-filter: blur(8px);
+    display: flex; align-items: center; gap: 14px;
+    text-align: left; transition: all 0.3s;
+  }
+  .facility-item:hover { border-color: rgba(232,82,122,0.3); transform: translateX(4px); }
+  .fac-icon { font-size: 1.5rem; flex-shrink: 0; }
+  .fac-text strong { display: block; font-size: 0.88rem; color: var(--white); margin-bottom: 3px; }
+  .fac-text span { font-size: 0.78rem; color: var(--muted); }
+
+  /* ════════════════════════════════
+     CONTACT
+  ════════════════════════════════ */
+  .contact { padding: 100px 60px; text-align: center; }
+  .contact-grid { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; max-width: 800px; margin: 0 auto 50px; }
+  .contact-card {
+    flex: 1; min-width: 200px;
+    background: var(--glass);
+    border: 1px solid var(--glass-b);
+    border-radius: 20px; padding: 28px 24px;
+    backdrop-filter: blur(8px);
+    text-decoration: none; color: var(--white);
+    transition: all 0.3s;
+  }
+  .contact-card:hover { border-color: rgba(232,82,122,0.4); transform: translateY(-5px); background: rgba(232,82,122,0.07); }
+  .contact-card .ci { font-size: 2rem; margin-bottom: 14px; }
+  .contact-card h4 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--rose-light); margin-bottom: 8px; }
+  .contact-card p { color: var(--muted); font-size: 0.85rem; line-height: 1.6; }
+
+  /* ════════════════════════════════
+     FOOTER
+  ════════════════════════════════ */
+  footer {
+    background: rgba(0,0,0,0.4);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 40px 60px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: gap;
+    gap: 20px;
+  }
+  .footer-brand { display: flex; align-items: center; gap: 12px; }
+  .footer-brand .fn { font-family: 'Playfair Display', serif; font-size: 0.95rem; }
+  .footer-brand .fs { font-size: 0.72rem; color: var(--muted); }
+  .footer-links { display: flex; gap: 24px; }
+  .footer-links a { color: var(--muted); text-decoration: none; font-size: 0.82rem; transition: color 0.2s; }
+  .footer-links a:hover { color: var(--rose-light); }
+  .footer-copy { font-size: 0.78rem; color: rgba(255,255,255,0.2); }
+
+  /* ════════════════════════════════
+     RESPONSIVE
+  ════════════════════════════════ */
+  @media (max-width: 1100px) {
+    .hero-card { display: none; }
+    .programs-grid { grid-template-columns: repeat(2, 1fr); }
+    .why-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 768px) {
+    nav { padding: 14px 24px; }
+    .nav-links { display: none; }
+    .hero { padding: 100px 24px 60px; }
+    .portal-section, .about, .values, .programs, .why, .facilities, .contact { padding: 70px 24px; }
+    .about-grid { grid-template-columns: 1fr; gap: 40px; }
+    .values-grid { grid-template-columns: 1fr 1fr; }
+    .programs-grid { grid-template-columns: 1fr 1fr; }
+    .why-grid { grid-template-columns: 1fr 1fr; }
+    .facilities-grid { grid-template-columns: 1fr; }
+    footer { flex-direction: column; text-align: center; padding: 30px 24px; }
+    .footer-links { flex-wrap: wrap; justify-content: center; }
+  }
+  @media (max-width: 480px) {
+    .values-grid, .programs-grid, .why-grid { grid-template-columns: 1fr; }
+    .portal-cards { flex-direction: column; }
+    .hero h1 { font-size: 2.2rem; }
+    .hero-stats { gap: 20px; }
+    .nav-cta .btn-outline { display: none; }
+  }
+
+  /* scroll reveal */
+  .reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">
+    <div class="nav-logo">🎓</div>
+    <div class="nav-name">
+      Adrem Model Academy
+      <span>Official School Portal</span>
+    </div>
+  </div>
+  <div class="nav-links">
+    <a href="#about">About</a>
+    <a href="#programs">Programs</a>
+    <a href="#values">Values</a>
+    <a href="#contact">Contact</a>
+  </div>
+  <div class="nav-cta">
+    <a href="login.html" class="btn-outline">Sign In</a>
+    <a href="#portal" class="btn-primary">Access Portal</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-content">
+    <div class="hero-badge"><span class="dot"></span> Apomu, Osun State, Nigeria</div>
+    <h1>
+      Education is<br>
+      <em>Light. Character</em><br>
+      is Everything.
+    </h1>
+    <p>
+      At Adrem Model Academy, we provide a well-balanced education that prepares our learners to compete favorably with their peers anywhere in the world — from Crèche through Secondary School.
+    </p>
+    <div class="hero-actions">
+      <a href="#portal" class="hero-btn-main">Access School Portal</a>
+      <a href="#about" class="hero-btn-ghost">Learn More ↓</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="n">4</div>
+        <div class="l">School Levels</div>
+      </div>
+      <div class="stat-div"></div>
+      <div class="hero-stat">
+        <div class="n">100%</div>
+        <div class="l">Dedicated Staff</div>
+      </div>
+      <div class="stat-div"></div>
+      <div class="hero-stat">
+        <div class="n">Apomu</div>
+        <div class="l">Osun State</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Portal Card (desktop) -->
+  <div class="hero-card">
+    <h3>🚪 Quick Portal Access</h3>
+    <a href="student-login.html" class="portal-link">
+      <div class="pl-icon student">🎒</div>
+      <div class="pl-text">
+        <strong>Student Portal</strong>
+        <span>Results, timetable, assignments</span>
+      </div>
+      <span class="pl-arrow">→</span>
+    </a>
+    <a href="staff-login.html" class="portal-link">
+      <div class="pl-icon staff">👩‍🏫</div>
+      <div class="pl-text">
+        <strong>Staff Portal</strong>
+        <span>Scores, attendance, notices</span>
+      </div>
+      <span class="pl-arrow">→</span>
+    </a>
+  </div>
+</section>
+
+<!-- PORTAL ACCESS SECTION -->
+<section class="portal-section" id="portal">
+  <p class="section-label">Portal Access</p>
+  <h2 class="section-title">Choose Your Portal</h2>
+  <p class="section-sub">Select your role below to access your personalized dashboard on the Adrem Model Academy portal.</p>
+  <div class="portal-cards">
+    <a href="student-login.html" class="portal-card student reveal">
+      <div class="card-icon">🎒</div>
+      <h3>Student Portal</h3>
+      <p>View your results, check timetables, track attendance, access assignments, and stay up to date with school announcements.</p>
+      <span class="card-btn">Enter Student Portal →</span>
+    </a>
+    <a href="staff-login.html" class="portal-card staff reveal">
+      <div class="card-icon">👩‍🏫</div>
+      <h3>Staff Portal</h3>
+      <p>Manage student scores, mark attendance, view your class schedule, upload assignments, and receive admin notices.</p>
+      <span class="card-btn">Enter Staff Portal →</span>
+    </a>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="about" id="about">
+  <div class="about-grid">
+    <div class="about-left reveal">
+      <p class="section-label">Who We Are</p>
+      <h2 class="section-title">A Trusted Name in Educational Excellence</h2>
+      <p>Adrem Model Academy is a reputable private co-educational institution established to provide quality education to children in Apomu and its environs. We offer a comprehensive educational program from Crèche through Secondary School, following the Nigerian curriculum enriched with modern educational best practices.</p>
+      <p>We believe that every child is unique and blessed with innate potentials. Our approach is holistic — encompassing academic excellence, moral uprightness, and social development.</p>
+      <div class="about-facts">
+        <div class="fact"><div class="fi">🏫</div><strong>Creche – SS3</strong><span>Full school range</span></div>
+        <div class="fact"><div class="fi">📍</div><strong>Apomu, Osun</strong><span>Conducive environment</span></div>
+        <div class="fact"><div class="fi">👨‍🏫</div><strong>Qualified Staff</strong><span>Passionate educators</span></div>
+        <div class="fact"><div class="fi">📋</div><strong>Nigerian Curriculum</strong><span>+ Modern methods</span></div>
+      </div>
+    </div>
+    <div class="about-right reveal">
+      <div class="mission-card">
+        <h4>🎯 Our Mission</h4>
+        <p>To provide a holistic and qualitative education that nurtures the intellectual, moral, and social development of every child, preparing them to become responsible and successful citizens who will contribute meaningfully to the development of Nigeria and the world.</p>
+      </div>
+      <div class="mission-card">
+        <h4>🔭 Our Vision</h4>
+        <p>To be a center of educational excellence, producing well-rounded graduates who are academically sound, morally upright, and equipped with the skills to excel in their chosen endeavors and positively impact their communities.</p>
+      </div>
+      <div class="mission-card">
+        <h4>💡 Our Philosophy</h4>
+        <p>Every child is a unique individual with innate potentials waiting to be discovered. Education should be child-centered, character development is as important as academics, and parents are partners in the process.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CORE VALUES -->
+<section class="values" id="values">
+  <p class="section-label">What We Stand For</p>
+  <h2 class="section-title">Our Core Values</h2>
+  <p class="section-sub">Six guiding principles that shape everything we do at Adrem Model Academy — from curriculum design to character building.</p>
+  <div class="values-grid">
+    <div class="value-card reveal"><div class="value-icon">⭐</div><h4>Excellence</h4><p>We pursue the highest standards in academics, character, and all our endeavors. Good enough is not enough — we encourage students to always give their best.</p></div>
+    <div class="value-card reveal"><div class="value-icon">🤝</div><h4>Integrity</h4><p>We uphold honesty, transparency, and ethical behavior in all our dealings. We teach students the importance of truthfulness and standing for what is right.</p></div>
+    <div class="value-card reveal"><div class="value-icon">💪</div><h4>Diligence</h4><p>We believe in hard work, perseverance, and dedication. Success comes through consistent effort and challenges are opportunities to grow stronger.</p></div>
+    <div class="value-card reveal"><div class="value-icon">🙏</div><h4>Godliness</h4><p>We recognize the importance of spiritual and moral development, raising children with the fear of God, sound moral values, and respect for all people.</p></div>
+    <div class="value-card reveal"><div class="value-icon">💡</div><h4>Creativity</h4><p>We encourage innovative thinking and problem-solving, providing opportunities for students to explore their creativity through activities and projects.</p></div>
+    <div class="value-card reveal"><div class="value-icon">🤜🤛</div><h4>Teamwork</h4><p>We teach students to collaborate, support one another, and achieve more as a team than they could alone — a skill for life.</p></div>
+  </div>
+</section>
+
+<!-- PROGRAMS -->
+<section class="programs" id="programs">
+  <p class="section-label">Academic Programs</p>
+  <h2 class="section-title">From Crèche to Secondary School</h2>
+  <p class="section-sub">A seamless educational journey from your child's earliest years all the way through secondary school completion.</p>
+  <div class="programs-grid">
+    <div class="prog-card reveal"><div class="prog-icon">🍼</div><h4>Crèche / Playgroup</h4><p>A safe, nurturing environment for our youngest learners to begin their educational journey with love and care.</p></div>
+    <div class="prog-card reveal"><div class="prog-icon">🧸</div><h4>Nursery School</h4><p>Building foundational skills through play and structured learning, preparing children for formal education.</p></div>
+    <div class="prog-card reveal"><div class="prog-icon">📚</div><h4>Primary School</h4><p>Comprehensive primary education with strong academic foundations, character building, and holistic development.</p></div>
+    <div class="prog-card reveal"><div class="prog-icon">🎓</div><h4>Secondary School</h4><p>Preparing students for WASSCE and future academic or career endeavors with a rigorous and enriched curriculum.</p></div>
+  </div>
+</section>
+
+<!-- WHY CHOOSE US -->
+<section class="why">
+  <p class="section-label">Why Adrem</p>
+  <h2 class="section-title">Why Choose Adrem Model Academy?</h2>
+  <p class="section-sub">We go above and beyond to create an environment where every child thrives academically, morally, and socially.</p>
+  <div class="why-grid">
+    <div class="why-item reveal"><div class="why-check">✓</div><p>Conducive and stimulating learning environment</p></div>
+    <div class="why-item reveal"><div class="why-check">✓</div><p>Qualified and experienced, passionate teachers</p></div>
+    <div class="why-item reveal"><div class="why-check">✓</div><p>Modern teaching methods and resources</p></div>
+    <div class="why-item reveal"><div class="why-check">✓</div><p>Affordable school fees for all families</p></div>
+    <div class="why-item reveal"><div class="why-check">✓</div><p>Strong character and moral development focus</p></div>
+    <div class="why-item reveal"><div class="why-check">✓</div><p>Extracurricular activities and sports</p></div>
+    <div class="why-item reveal"><div class="why-check">✓</div><p>Small class sizes for individual attention</p></div>
+    <div class="why-item reveal"><div class="why-check">✓</div><p>Secure, fenced premises with controlled access</p></div>
+  </div>
+</section>
+
+<!-- FACILITIES -->
+<section class="facilities">
+  <p class="section-label">Our Infrastructure</p>
+  <h2 class="section-title">World-Class Facilities</h2>
+  <p class="section-sub">We have invested in facilities that support effective teaching, learning, and the overall wellbeing of every student.</p>
+  <div class="facilities-grid">
+    <div class="facility-item reveal"><span class="fac-icon">🏛️</span><div class="fac-text"><strong>Spacious Classrooms</strong><span>Well-ventilated & conducive</span></div></div>
+    <div class="facility-item reveal"><span class="fac-icon">🔬</span><div class="fac-text"><strong>Science Laboratory</strong><span>Fully equipped for experiments</span></div></div>
+    <div class="facility-item reveal"><span class="fac-icon">💻</span><div class="fac-text"><strong>Computer Room</strong><span>Functional computer systems</span></div></div>
+    <div class="facility-item reveal"><span class="fac-icon">📖</span><div class="fac-text"><strong>Library</strong><span>Age-appropriate book collection</span></div></div>
+    <div class="facility-item reveal"><span class="fac-icon">⚽</span><div class="fac-text"><strong>Sports & Playground</strong><span>Physical education facilities</span></div></div>
+    <div class="facility-item reveal"><span class="fac-icon">🏟️</span><div class="fac-text"><strong>School Hall</strong><span>Assemblies and school events</span></div></div>
+    <div class="facility-item reveal"><span class="fac-icon">🏥</span><div class="fac-text"><strong>Health Room</strong><span>First aid & student welfare</span></div></div>
+    <div class="facility-item reveal"><span class="fac-icon">💧</span><div class="fac-text"><strong>Clean Water & Sanitation</strong><span>Safe, hygienic facilities</span></div></div>
+    <div class="facility-item reveal"><span class="fac-icon">🔒</span><div class="fac-text"><strong>Secure Premises</strong><span>Fenced with controlled access</span></div></div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section class="contact" id="contact">
+  <p class="section-label">Get In Touch</p>
+  <h2 class="section-title">Contact Adrem Model Academy</h2>
+  <p class="section-sub">We'd love to hear from you. Reach out to us through any of the channels below and our team will respond promptly.</p>
+  <div class="contact-grid">
+    <a href="tel:+2347015182166" class="contact-card reveal">
+      <div class="ci">📞</div>
+      <h4>Call Us</h4>
+      <p>+234 701 518 2166<br>+234 808 534 5947</p>
+    </a>
+    <a href="mailto:adremodelacademy@yahoo.com" class="contact-card reveal">
+      <div class="ci">✉️</div>
+      <h4>Email Us</h4>
+      <p>adremodelacademy<br>@yahoo.com</p>
+    </a>
+    <a href="https://maps.google.com/?q=Apomu,Osun+State,Nigeria" target="_blank" class="contact-card reveal">
+      <div class="ci">📍</div>
+      <h4>Find Us</h4>
+      <p>Apomu, Osun State,<br>Nigeria</p>
+    </a>
+    <a href="https://adremmodelacademy.com.ng" target="_blank" class="contact-card reveal">
+      <div class="ci">🌐</div>
+      <h4>Website</h4>
+      <p>adremmodelacademy<br>.com.ng</p>
+    </a>
+  </div>
+  <!-- CTA -->
+  <div style="margin-top: 50px;">
+    <p style="color: var(--muted); margin-bottom: 20px; font-size: 0.95rem;">Ready to access the school portal?</p>
+    <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+      <a href="student-login.html" class="hero-btn-main">Student Portal →</a>
+      <a href="staff-login.html" class="hero-btn-ghost">Staff Portal →</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">
+    <div class="nav-logo">🎓</div>
+    <div>
+      <div class="fn">Adrem Model Academy</div>
+      <div class="fs">Apomu, Osun State, Nigeria</div>
+    </div>
+  </div>
+  <div class="footer-links">
+    <a href="#about">About</a>
+    <a href="#programs">Programs</a>
+    <a href="#values">Values</a>
+    <a href="#contact">Contact</a>
+    <a href="student-login.html">Student Portal</a>
+    <a href="staff-login.html">Staff Portal</a>
+  </div>
+  <div class="footer-copy">© 2026 Adrem Model Academy. All rights reserved.</div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 80);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  reveals.forEach(el => observer.observe(el));
+
+  // Smooth nav background
+  window.addEventListener('scroll', () => {
+    const nav = document.querySelector('nav');
+    nav.style.background = window.scrollY > 50
+      ? 'rgba(26,22,38,0.97)'
+      : 'rgba(26,22,38,0.85)';
+  });
+</script>
+</body>
+</html>
