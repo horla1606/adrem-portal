@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Login | School Portal</title>
+    <style>
+        :root { --bg: #0f172a; --glass: rgba(255,255,255,0.05); --glass-b: rgba(255,255,255,0.1); --amber: #f59e0b; }
+        body { background: var(--bg); font-family: 'DM Sans', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; color: white; }
+        .login-card { background: var(--glass); border: 1px solid var(--glass-b); padding: 40px; border-radius: 20px; width: 320px; text-align: center; backdrop-filter: blur(10px); }
+        h2 { margin-bottom: 24px; font-weight: 500; letter-spacing: -1px; }
+        input { width: 100%; padding: 12px; margin-bottom: 16px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-b); border-radius: 10px; color: white; box-sizing: border-box; outline: none; }
+        button { width: 100%; padding: 12px; background: var(--amber); border: none; border-radius: 10px; color: #000; font-weight: 700; cursor: pointer; }
+        button:disabled { opacity: 0.5; }
+        #error { color: #f87171; font-size: 0.85rem; margin-top: 10px; display: none; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>School Admin Login</h2>
+        <input type="email" id="email" placeholder="Admin Email (admin@school.com)">
+        <input type="password" id="password" placeholder="Password (admin123)">
+        <button id="login-btn" onclick="handleLogin()">Sign In</button>
+        <div id="error"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script> <script>
+        async function handleLogin() {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const btn = document.getElementById('login-btn');
+            const errorEl = document.getElementById('error');
+
+            if(!email || !password) return;
+            btn.disabled = true; btn.textContent = 'Verifying...';
+            errorEl.style.display = 'none';
+
+            try {
+                // We check the staff table for these credentials
+                const { data, error } = await _supabase
+                    .from('staff')
+                    .select('*')
+                    .eq('email', email)
+                    .eq('password', password)
+                    .eq('role', 'admin') // Ensure only admins enter the dashboard
+                    .single();
+
+                if (error || !data) throw new Error('Invalid admin credentials.');
+
+                // Store session for the dashboard to read
+                sessionStorage.setItem('adrem_user', JSON.stringify(data));
+                window.location.href = 'index.html'; // Path to your main dashboard
+            } catch (err) {
+                errorEl.textContent = err.message;
+                errorEl.style.display = 'block';
+                btn.disabled = false; btn.textContent = 'Sign In';
+            }
+        }
+    </script>
+</body>
+</html>
