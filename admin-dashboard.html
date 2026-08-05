@@ -859,6 +859,13 @@ let SETTINGS = {};
 let ALL_STUDENTS = [];
 let ALL_STAFF = [];
 
+// Report card config — swap `principalStampImage` for another school's stamp/signature
+// file, or set a `principal_stamp_url` column in the settings table to override without
+// touching code.
+const REPORT_CARD_CONFIG = {
+  principalStampImage: 'stamp&signature.png'
+};
+
 // Grade helpers
 function jssGrade(t){return t>=70?'A':t>=40?'P':'F';}
 function jssGradeClass(t){return t>=70?'g-A':t>=40?'g-P':'g-F';}
@@ -2757,6 +2764,81 @@ async function populatePrintStudents() {
   }
 }
 
+// Generates a short, tone-adapted Principal's Comment from a student's subject
+// results. Not tied to any specific school — driven entirely by the scores passed in.
+function generatePrincipalComment(student, subjectResults) {
+  if (!subjectResults.length) return 'A comment will be generated once results are recorded for this student.';
+
+  const firstName = (student.name || 'The student').trim().split(/\s+/)[0];
+  const genderKey  = (student.gender || '').toLowerCase();
+  const pronoun    = genderKey === 'male' ? 'he'  : genderKey === 'female' ? 'she'  : 'they';
+  const possessive = genderKey === 'male' ? 'his' : genderKey === 'female' ? 'her'  : 'their';
+  const Pronoun    = pronoun.charAt(0).toUpperCase() + pronoun.slice(1);
+
+  const isCoreSubject = name => /math|english/i.test(name);
+  const list = arr => arr.length === 0 ? '' : arr.length === 1 ? arr[0]
+    : arr.length === 2 ? `${arr[0]} and ${arr[1]}`
+    : `${arr.slice(0, -1).join(', ')}, and ${arr[arr.length - 1]}`;
+
+  const byBest  = [...subjectResults].sort((a, b) => b.total - a.total);
+  const byWorst = [...subjectResults].sort((a, b) => a.total - b.total);
+  const failCount  = subjectResults.filter(r => r.total < 40).length;
+  const overallAvg = subjectResults.reduce((sum, r) => sum + r.total, 0) / subjectResults.length;
+  const failRatio  = failCount / subjectResults.length;
+
+  // Strengths — top 2 or 3 subjects, favoring 3 only when genuinely strong across the board.
+  const numStrengths = byBest.filter(r => r.total >= 60).length >= 3 ? 3 : Math.min(2, byBest.length);
+  const strengthSubjects = byBest.slice(0, numStrengths);
+  const strengths = strengthSubjects.map(r => r.subject);
+
+  // Weak subjects — the actual failures if any exist, else the relatively weak passes.
+  // When there are more candidates than we want to name, core subjects (Math/English)
+  // are prioritized so the comment always steers toward the subjects that matter most.
+  let weakPool = byWorst.filter(r => r.total < 40);
+  if (!weakPool.length) weakPool = byWorst.filter(r => r.total < 60);
+  if (!weakPool.length) weakPool = byWorst.slice(0, Math.min(2, byWorst.length));
+  weakPool = weakPool.filter(r => !strengths.includes(r.subject));
+
+  const numWeak = Math.min(3, weakPool.length);
+  let weakCandidates = weakPool;
+  if (weakPool.length > numWeak) {
+    weakCandidates = [...weakPool].sort((a, b) => {
+      const aCore = isCoreSubject(a.subject) ? 0 : 1;
+      const bCore = isCoreSubject(b.subject) ? 0 : 1;
+      return aCore !== bCore ? aCore - bCore : a.total - b.total;
+    });
+  }
+  const weak = weakCandidates.slice(0, numWeak).map(r => r.subject);
+
+  const struggling = failCount >= 3 || failRatio >= 0.3;
+  const strong = !struggling && failCount === 0 && overallAvg >= 60;
+
+  if (struggling) {
+    const strengthPart = strengths.length
+      ? `${firstName} shows real promise in ${list(strengths)}.`
+      : `${firstName} shows moments of promise this term.`;
+    const weakPart = weak.length
+      ? ` ${Pronoun} would benefit from more support in ${list(weak)}, and with focused effort next term, strong improvement is well within ${possessive} reach.`
+      : ` With focused effort next term, strong improvement is well within ${possessive} reach.`;
+    return strengthPart + weakPart;
+  }
+
+  if (strong) {
+    const strengthPart = `${firstName} shows excellent ability in ${list(strengths)}.`;
+    const weakPart = weak.length ? ` ${list(weak)} need${weak.length === 1 ? 's' : ''} attention.` : '';
+    const closer = weak.length
+      ? ` ${Pronoun} should keep up the good work while strengthening these subjects next term.`
+      : ` ${Pronoun} should keep up this excellent, consistent standard next term.`;
+    return strengthPart + weakPart + closer;
+  }
+
+  // Moderate performance — steady, with clear room to improve.
+  const strengthPart = `${firstName} performs well in ${list(strengths)}.`;
+  const weakPart = weak.length ? ` ${list(weak)} ${weak.length === 1 ? 'needs' : 'need'} more focused effort.` : '';
+  const closer = ` ${Pronoun} is capable of stronger results with more consistent work next term.`;
+  return strengthPart + weakPart + closer;
+}
+
 async function loadPrintResult() {
   const studentId = document.getElementById('print-student-sel').value;
   const cls = document.getElementById('print-class-sel').value;
@@ -2790,7 +2872,7 @@ async function loadPrintResult() {
 
     // ── Academic rows ─────────────────────────────────────────
     let grandTotal = 0, passed = 0;
-    const rows = scores.map(s => {
+    const subjectResults = scores.map(s => {
       const ca = s.ca_score || 0;
       const ex = s.exam_score || 0;
       const t  = ca + ex;
@@ -2806,14 +2888,19 @@ async function loadPrintResult() {
       const sorted  = [...stats].sort((a,b) => b.total - a.total);
       const posIdx  = sorted.findIndex(x => x.sid === studentId);
       const pos     = posIdx >= 0 ? ordinal(posIdx + 1) : '—';
+      return { subject: s.subject, ca, ex, total: t, grade, remark, clsAvg, clsHigh, clsLow, pos };
+    });
+    const rows = subjectResults.map(r => {
       const td = (v, bold) => `<td style="padding:3px 4px;text-align:center;border:1px solid #e5e7eb;${bold?'font-weight:700;':''}">${v}</td>`;
       return `<tr>
-        <td style="padding:3px 4px;border:1px solid #e5e7eb;">${s.subject}</td>
-        ${td(ca)}${td(ex)}${td(t,true)}${td(clsAvg)}${td(clsHigh)}${td(clsLow)}${td(pos)}${td(grade)}
-        <td style="padding:3px 4px;border:1px solid #e5e7eb;">${remark}</td>
+        <td style="padding:3px 4px;border:1px solid #e5e7eb;">${r.subject}</td>
+        ${td(r.ca)}${td(r.ex)}${td(r.total,true)}${td(r.clsAvg)}${td(r.clsHigh)}${td(r.clsLow)}${td(r.pos)}${td(r.grade)}
+        <td style="padding:3px 4px;border:1px solid #e5e7eb;">${r.remark}</td>
       </tr>`;
     }).join('');
     const overallAvg = scores.length ? (grandTotal / scores.length).toFixed(1) : '—';
+    const principalComment = generatePrincipalComment(student, subjectResults);
+    const stampUrl = SETTINGS.principal_stamp_url || REPORT_CARD_CONFIG.principalStampImage;
 
     // ── Psychomotor — single horizontal table ─────────────────
     const PSYCHO_TRAITS = ['punctuality','attentiveness','neatness','politeness','honesty','sports','clubs','creativity','leadership','conduct'];
@@ -2826,13 +2913,6 @@ async function loadPrintResult() {
       return `<td style="padding:3px 4px;border:1px solid #e5e7eb;font-size:0.65rem;font-weight:600;color:#92400e;text-align:center;">${label}</td>`;
     }).join('');
     const psychoTable = `<table style="width:100%;border-collapse:collapse;"><thead><tr>${psychoHeaders}</tr></thead><tbody><tr>${psychoCells}</tr></tbody></table>`;
-
-    // ── Signature line helper ──────────────────────────────────
-    const sigLine = (label, wide, prefilled) => `
-      <div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:9px;font-size:0.73rem;">
-        <span style="font-weight:600;white-space:nowrap;flex-shrink:0;">${label}</span>
-        <span style="flex:1;border-bottom:1px solid #aaa;min-width:${wide||'60px'};padding-bottom:1px;color:#333;font-weight:500;">${prefilled||''}</span>
-      </div>`;
 
     content.innerHTML = `
       <div id="print-result-sheet" style="font-family:'DM Sans',sans-serif;color:#1a1626;background:#fff;padding:14px 18px;border-radius:10px;max-width:960px;margin:0 auto;position:relative;">
@@ -2890,20 +2970,13 @@ async function loadPrintResult() {
         <div style="font-weight:700;font-size:0.65rem;margin-bottom:2px;color:#d97706;text-transform:uppercase;letter-spacing:1px;">Psychomotor &amp; Affective Assessment</div>
         <div style="margin-bottom:6px;">${psychoTable}</div>
 
-        <!-- COMMENTS & SIGNATURES -->
+        <!-- COMMENTS & SIGNATURE -->
         <div style="border-top:1px solid #e5e7eb;padding-top:6px;margin-top:4px;">
-          ${sigLine('Class Teacher\'s Remark:', '200px')}
-          ${sigLine('\u00a0', '200px')}
-          <div style="display:flex;gap:30px;margin-bottom:8px;">
-            <div style="display:flex;align-items:flex-end;gap:8px;font-size:0.7rem;flex:1;"><span style="font-weight:600;white-space:nowrap;flex-shrink:0;">Class Teacher's Signature:</span><span style="flex:1;min-width:140px;">&nbsp;</span></div>
-            <div style="display:flex;align-items:flex-end;gap:8px;font-size:0.7rem;"><span style="font-weight:600;white-space:nowrap;flex-shrink:0;">Date:</span><span style="min-width:90px;">&nbsp;</span></div>
+          <div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:3px;font-size:0.73rem;">
+            <span style="font-weight:600;white-space:nowrap;flex-shrink:0;">Principal's Comment:</span>
           </div>
-          ${sigLine('Principal\'s Comment:', '220px')}
-          ${sigLine('\u00a0', '220px')}
-          <div style="display:flex;gap:30px;margin-bottom:6px;">
-            <div style="display:flex;align-items:flex-end;gap:8px;font-size:0.7rem;flex:1;"><span style="font-weight:600;white-space:nowrap;flex-shrink:0;">Principal's Signature:</span><span style="flex:1;min-width:140px;">&nbsp;</span></div>
-            <div style="display:flex;align-items:flex-end;gap:8px;font-size:0.7rem;"><span style="font-weight:600;white-space:nowrap;flex-shrink:0;">Date:</span><span style="min-width:90px;">&nbsp;</span></div>
-          </div>
+          <div style="font-size:0.72rem;line-height:1.5;color:#222;margin-bottom:10px;">${principalComment}</div>
+          <img src="${stampUrl}" alt="Principal's Signature and Stamp" style="display:block;max-height:44px;max-width:150px;width:auto;height:auto;object-fit:contain;margin-bottom:10px;">
           <div style="font-size:0.7rem;font-weight:600;">Date Next Term Commences: <span style="font-weight:500;color:#333;">${SETTINGS.next_term_start ? new Date(SETTINGS.next_term_start).toLocaleDateString('en-NG',{day:'numeric',month:'long',year:'numeric'}) : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}</span></div>
         </div>
 
@@ -2916,9 +2989,12 @@ async function loadPrintResult() {
 function doPrintResult() {
   const sheet = document.getElementById('print-result-sheet');
   if (!sheet) return;
-  // Resolve logo to absolute URL so it loads in the new window
+  // Resolve logo & principal stamp to absolute URLs so they load in the new print window
   const logoUrl = new URL('logo.jpg', window.location.href).href;
-  const html = sheet.outerHTML.replace(/src="logo\.jpg"/g, `src="${logoUrl}"`);
+  const stampUrl = SETTINGS.principal_stamp_url || REPORT_CARD_CONFIG.principalStampImage;
+  const stampAbsUrl = new URL(stampUrl, window.location.href).href;
+  let html = sheet.outerHTML.replace(/src="logo\.jpg"/g, `src="${logoUrl}"`);
+  html = html.split(`src="${stampUrl}"`).join(`src="${stampAbsUrl}"`);
   const w = window.open('', '_blank');
   w.document.write(`<!DOCTYPE html><html><head><title>Result Sheet</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
