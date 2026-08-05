@@ -2764,16 +2764,40 @@ async function populatePrintStudents() {
   }
 }
 
+// Deterministic PRNG (mulberry32-style) seeded from a string, so the same
+// student always gets the same comment on reload, but different students
+// (different seeds) land on different phrasing combinations.
+function seededRng(seedStr) {
+  let h = 1779033703 ^ seedStr.length;
+  for (let i = 0; i < seedStr.length; i++) {
+    h = Math.imul(h ^ seedStr.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  return function () {
+    h = Math.imul(h ^ (h >>> 16), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  };
+}
+
 // Generates a short, tone-adapted Principal's Comment from a student's subject
-// results. Not tied to any specific school — driven entirely by the scores passed in.
+// results. Not tied to any specific school — driven entirely by the scores passed
+// in, plus a pool of phrasing variations so comments don't read identically across
+// a class. Pronouns are only used when gender is explicitly known; otherwise the
+// student's own name is repeated instead of guessing he/she.
 function generatePrincipalComment(student, subjectResults) {
   if (!subjectResults.length) return 'A comment will be generated once results are recorded for this student.';
 
-  const firstName = (student.name || 'The student').trim().split(/\s+/)[0];
-  const genderKey  = (student.gender || '').toLowerCase();
-  const pronoun    = genderKey === 'male' ? 'he'  : genderKey === 'female' ? 'she'  : 'they';
-  const possessive = genderKey === 'male' ? 'his' : genderKey === 'female' ? 'her'  : 'their';
-  const Pronoun    = pronoun.charAt(0).toUpperCase() + pronoun.slice(1);
+  const firstName   = (student.name || 'The student').trim().split(/\s+/)[0];
+  const genderKey    = (student.gender || '').toLowerCase();
+  const genderKnown  = genderKey === 'male' || genderKey === 'female';
+  const pronoun      = genderKey === 'male' ? 'he' : 'she';
+  const possessive   = genderKey === 'male' ? 'his' : 'her';
+  // Mid-sentence subject reference: real pronoun when gender is known, otherwise
+  // the student's name again — never a guessed pronoun.
+  const Subj = genderKnown ? (pronoun.charAt(0).toUpperCase() + pronoun.slice(1)) : firstName;
+  const poss = genderKnown ? possessive : `${firstName}'s`;
 
   const isCoreSubject = name => /math|english/i.test(name);
   const list = arr => arr.length === 0 ? '' : arr.length === 1 ? arr[0]
@@ -2788,8 +2812,7 @@ function generatePrincipalComment(student, subjectResults) {
 
   // Strengths — top 2 or 3 subjects, favoring 3 only when genuinely strong across the board.
   const numStrengths = byBest.filter(r => r.total >= 60).length >= 3 ? 3 : Math.min(2, byBest.length);
-  const strengthSubjects = byBest.slice(0, numStrengths);
-  const strengths = strengthSubjects.map(r => r.subject);
+  const strengths = byBest.slice(0, numStrengths).map(r => r.subject);
 
   // Weak subjects — the actual failures if any exist, else the relatively weak passes.
   // When there are more candidates than we want to name, core subjects (Math/English)
@@ -2812,31 +2835,116 @@ function generatePrincipalComment(student, subjectResults) {
 
   const struggling = failCount >= 3 || failRatio >= 0.3;
   const strong = !struggling && failCount === 0 && overallAvg >= 60;
+  const tone = struggling ? 'struggling' : strong ? 'strong' : 'moderate';
 
-  if (struggling) {
-    const strengthPart = strengths.length
-      ? `${firstName} shows real promise in ${list(strengths)}.`
-      : `${firstName} shows moments of promise this term.`;
-    const weakPart = weak.length
-      ? ` ${Pronoun} would benefit from more support in ${list(weak)}, and with focused effort next term, strong improvement is well within ${possessive} reach.`
-      : ` With focused effort next term, strong improvement is well within ${possessive} reach.`;
-    return strengthPart + weakPart;
+  const strengthsList = list(strengths);
+  const weakList = list(weak);
+
+  // ── Seeded selection: same student → same comment; different students → ──
+  // ── different phrasing, since reg numbers differ. ─────────────────────
+  const seedSource = String(student.reg || student.id || student.name || 'student');
+  const rng = seededRng(seedSource);
+  const pick = arr => arr[Math.floor(rng() * arr.length)];
+
+  // ── Phrasing pools ──────────────────────────────────────────────────
+  const strengthOpeners = strengthsList ? [
+    `${firstName} shows excellent ability in ${strengthsList}.`,
+    `${firstName} performs strongly in ${strengthsList}.`,
+    `${firstName} has done very well in ${strengthsList}.`,
+    `${firstName} demonstrates real strength in ${strengthsList}.`,
+    `${firstName} excels particularly in ${strengthsList}.`,
+    `${firstName} shows real promise in ${strengthsList}.`,
+    `${firstName} continues to shine in ${strengthsList}.`
+  ] : [`${firstName} is still building consistency across subjects this term.`];
+
+  const overallRemarks = {
+    strong: [
+      `This has been an outstanding term for ${firstName}.`,
+      `${firstName} has had a genuinely impressive term.`,
+      `It has been a strong, consistent term for ${firstName}.`
+    ],
+    moderate: [
+      `This has been a steady term for ${firstName}.`,
+      `${firstName} has put in a fair term overall.`,
+      `Overall, it has been a reasonable term for ${firstName}.`
+    ],
+    struggling: [
+      `This term has had its challenges for ${firstName}.`,
+      `It has been a difficult term for ${firstName} academically.`,
+      `${firstName} has faced some setbacks this term.`
+    ]
+  };
+
+  // Improvement clauses are fragments (no leading capital, no trailing period) so
+  // they can be stitched onto a comma-joined closing below. `avoid` flags a keyword
+  // that shouldn't also appear in the closing that follows it, so combinations like
+  // "more support... with more support..." can't land together.
+  const improvementClauses = weakList ? [
+    { text: `${Subj} should give more attention to ${weakList}`, avoid: null },
+    { text: `${Subj} would benefit from more focus on ${weakList}`, avoid: 'focus' },
+    { text: `${Subj} needs to strengthen ${weakList}`, avoid: null },
+    { text: `${Subj} has room to improve in ${weakList}`, avoid: null },
+    { text: `${Subj} would benefit from more support in ${weakList}`, avoid: 'support' },
+    { text: `${Subj} could use more consistent practice in ${weakList}`, avoid: 'practice' }
+  ] : [];
+
+  // Each closing is either `standalone` (a complete capitalized sentence that can
+  // follow a period) or a lowercase fragment meant to attach after a comma to the
+  // improvement clause immediately before it.
+  const closings = {
+    strong: [
+      { text: 'and should keep up the excellent effort.', standalone: false },
+      { text: 'and is encouraged to maintain this standard.', standalone: false },
+      { text: 'A commendable result overall.', standalone: true },
+      { text: 'and continues to set a fine example this term.', standalone: false },
+      { text: `${Subj} should keep up this pleasing standard next term.`, standalone: true }
+    ],
+    moderate: [
+      { text: 'and consistent effort next term should lift these results further.', standalone: false },
+      { text: `and with a bit more focus, ${poss} results should improve next term.`, standalone: false },
+      { text: `${Subj} is capable of stronger results with steady, continued effort.`, standalone: true },
+      { text: 'and steady progress is expected with continued effort.', standalone: false }
+    ],
+    struggling: [
+      { text: 'and with steady effort, real improvement is within reach.', standalone: false },
+      { text: 'and is encouraged to keep pushing — the potential is clearly there.', standalone: false },
+      { text: 'and with more support, good progress is very achievable next term.', standalone: false },
+      { text: `${Subj} has the ability to turn this around with consistent effort next term.`, standalone: true },
+      { text: 'and steady, focused effort next term should bring real gains.', standalone: false }
+    ]
+  };
+
+  // ── Assemble: pick a structural shape, then fill it from the pools ──
+  // (keeps the whole comment to 2–3 sentences no matter which combination lands)
+  const strengthSentence = pick(strengthOpeners);
+  const improvement = improvementClauses.length ? pick(improvementClauses) : null;
+  // Occasionally lead with a brief overall remark before naming strengths — only
+  // when there's a fuller story (strengths + weak areas) to tell.
+  const useOpener = weak.length > 0 && rng() < 0.4;
+
+  let closingPool = closings[tone];
+  if (!improvement) {
+    closingPool = closingPool.filter(c => c.standalone); // nothing precedes it, so it must stand alone
+  } else if (useOpener) {
+    closingPool = closingPool.filter(c => !c.standalone); // keep the 3-sentence shape from growing to 4
   }
-
-  if (strong) {
-    const strengthPart = `${firstName} shows excellent ability in ${list(strengths)}.`;
-    const weakPart = weak.length ? ` ${list(weak)} need${weak.length === 1 ? 's' : ''} attention.` : '';
-    const closer = weak.length
-      ? ` ${Pronoun} should keep up the good work while strengthening these subjects next term.`
-      : ` ${Pronoun} should keep up this excellent, consistent standard next term.`;
-    return strengthPart + weakPart + closer;
+  if (improvement && improvement.avoid) {
+    const deduped = closingPool.filter(c => !c.text.toLowerCase().includes(improvement.avoid));
+    if (deduped.length) closingPool = deduped;
   }
+  if (!closingPool.length) closingPool = closings[tone];
+  const closing = pick(closingPool);
 
-  // Moderate performance — steady, with clear room to improve.
-  const strengthPart = `${firstName} performs well in ${list(strengths)}.`;
-  const weakPart = weak.length ? ` ${list(weak)} ${weak.length === 1 ? 'needs' : 'need'} more focused effort.` : '';
-  const closer = ` ${Pronoun} is capable of stronger results with more consistent work next term.`;
-  return strengthPart + weakPart + closer;
+  const closingLine = improvement
+    ? (closing.standalone ? `${improvement.text}. ${closing.text}` : `${improvement.text}, ${closing.text}`)
+    : closing.text;
+
+  const sentences = [];
+  if (useOpener) sentences.push(pick(overallRemarks[tone]));
+  sentences.push(strengthSentence);
+  sentences.push(closingLine);
+
+  return sentences.join(' ').replace(/\s+/g, ' ').trim();
 }
 
 async function loadPrintResult() {
